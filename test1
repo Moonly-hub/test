@@ -1,0 +1,158 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Moonly v2",
+    Icon = 0, -- Icon in Topbar. Can use Lucide Icons (string) or Roblox Image (number). 0 to use no icon (default).
+    LoadingTitle = "Rayfield Interface Suite",
+    LoadingSubtitle = "By ken",
+    Theme = "Default", -- Check https://docs.sirius.menu/rayfield/configuration/themes
+
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil, -- Create a custom folder for your hub/game
+        FileName = "Big Hub"
+    },
+
+    Discord = {
+        Enabled = true, -- Prompt the user to join your Discord server if their executor supports it
+        Invite = "tgDgHgyBEz", -- The Discord invite code, do not include discord.gg/. E.g. discord.gg/ABCD would be ABCD
+        RememberJoins = true -- Set this to false to make them join the discord every time they load it up
+    },
+
+    KeySystem = false, -- Set this to true to use our key system
+    KeySettings = {
+        Title = "Ken system",
+        Subtitle = "Key System",
+        Note = "No method of obtaining the key is provided", -- Use this to tell the user how to get a key
+        FileName = "Key", -- It is recommended to use something unique as other scripts using Rayfield may overwrite your key file
+        SaveKey = true, -- The user's key will be saved, but if you change the key, they will be unable to use your script
+        GrabKeyFromSite = false, -- If this is true, set Key below to the RAW site you would like Rayfield to get the key from
+        Key = {"Hello", "nigga"} -- List of keys that will be accepted by the system, can be RAW file links (pastebin, github etc) or simple strings ("hello","key22")
+    }
+})
+
+-- Main Tab for features like Grab Ball, Auto Grab Ball, etc.
+local MainTab = Window:CreateTab("Main", 4483362458)
+
+-- No CD Tab for Tackle
+local NoCDTab = Window:CreateTab("No CD", 4483362458)
+
+local Section = MainTab:CreateSection("Features")
+local Divider = MainTab:CreateDivider()
+
+local Section = NoCDTab:CreateSection("Features")
+local Divider = NoCDTab:CreateDivider()
+
+-- Target positions for Home and Away teams
+local targetPositions = {
+    Home = Vector3.new(-241.610962, 15.4354219, -48.842247),
+    Away = Vector3.new(319.472565, 15.2746372, -49.1536713)
+}
+
+-- Function to teleport the football efficiently
+local function teleportFootball(football, position)
+    if football and football:IsA("BasePart") then
+        football.CFrame = CFrame.new(position)
+        football.AssemblyLinearVelocity = Vector3.zero -- Stops the football
+    else
+        warn("Invalid football object or not a BasePart.")
+    end
+end
+
+-- Function to determine the user's team
+local function getPlayerTeam()
+    local player = game.Players.LocalPlayer
+    return player.Team and player.Team.Name or nil
+end
+
+-- Ronaldo Mode Toggle (teleporting the ball based on the team)
+MainTab:CreateToggle({
+    Name = "Ronaldo Mode (instantly goal)",
+    CurrentValue = false, -- Initially off
+    Flag = "ToggleTeleport",
+    Callback = function(enabled)
+        if enabled then
+            task.spawn(function()
+                local football = workspace:FindFirstChild("Football")
+                if not football then
+                    warn("Football not found in the workspace.")
+                    return
+                end
+                
+                while enabled do
+                    local velocity = football.AssemblyLinearVelocity
+                    if velocity.Magnitude > 10 then -- Threshold for teleport
+                        local team = getPlayerTeam()
+                        if team and targetPositions[team] then
+                            teleportFootball(football, targetPositions[team])
+                        else
+                            warn("Team not detected or no target position for this team.")
+                        end
+                    end
+                    task.wait(0.1) -- Optimized wait time
+                end
+            end)
+        end
+    end,
+})
+
+-- Optimized Grab Ball Button
+MainTab:CreateButton({
+    Name = "Grab ball",
+    Callback = function()
+        local ball = workspace:FindFirstChild("Football")
+        if ball and ball:IsA("BasePart") then
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if rootPart then
+                ball.CFrame = rootPart.CFrame
+                ball.AssemblyLinearVelocity = Vector3.zero -- Stop ball motion
+                print("Soccer ball teleported to your character!")
+            else
+                warn("HumanoidRootPart not found in character.")
+            end
+        else
+            warn("Soccer ball not found or is not a BasePart.")
+        end
+    end,
+})
+
+-- Tackle Animation ID
+local tackleAnimationId = "rbxassetid://18668814876"
+
+-- Tackle Button on No CD Tab
+NoCDTab:CreateButton({
+    Name = "Tackle",
+    Callback = function()
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+        local rootPart = character:WaitForChild("HumanoidRootPart")
+
+        -- Load and play the tackle animation
+        local tackleAnim = Instance.new("Animation")
+        tackleAnim.AnimationId = tackleAnimationId
+        local animTrack = humanoid:LoadAnimation(tackleAnim)
+
+        -- Play the animation
+        animTrack:Play()
+
+        -- Slide the character forward
+        local slideDistance = 20
+        local direction = rootPart.CFrame.LookVector
+
+        -- Smoothly move the character forward
+        local slideTween = game:GetService("TweenService"):Create(
+            rootPart,
+            TweenInfo.new(0.5, Enum.EasingStyle.Linear),
+            {CFrame = rootPart.CFrame + direction * slideDistance}
+        )
+        slideTween:Play()
+
+        -- Optional: Add cooldown or effects
+    end,
+})
