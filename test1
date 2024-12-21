@@ -156,3 +156,78 @@ NoCDTab:CreateButton({
         -- Optional: Add cooldown or effects
     end,
 })
+
+local AutoStealScript = {}
+
+local function createAutoStealFeature(MainTab)
+    MainTab:CreateButton({
+        Name = "Auto Steal Ball",
+        Callback = function()
+            local player = game.Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            local humanoid = character:FindFirstChild("Humanoid")
+
+            if not rootPart or not humanoid then
+                warn("HumanoidRootPart or Humanoid not found.")
+                return
+            end
+
+            -- Detect closest player with ball
+            local function getBallHolder()
+                for _, v in pairs(game.Players:GetPlayers()) do
+                    if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+                        local ball = workspace:FindFirstChild("Football")
+                        if ball and (ball.Position - v.Character.HumanoidRootPart.Position).Magnitude < 5 then
+                            return v.Character
+                        end
+                    end
+                end
+                return nil
+            end
+
+            local ballHolder = getBallHolder()
+            if ballHolder then
+                local originalPosition = rootPart.CFrame
+                local holderRoot = ballHolder:FindFirstChild("HumanoidRootPart")
+
+                if holderRoot then
+                    -- Teleport to ball holder
+                    rootPart.CFrame = holderRoot.CFrame
+
+                    -- Perform tackle animation
+                    local tackleAnim = Instance.new("Animation")
+                    tackleAnim.AnimationId = "rbxassetid://18668814876" -- Replace with your animation ID
+                    local animTrack = humanoid:LoadAnimation(tackleAnim)
+                    animTrack:Play()
+
+                    -- Optional: Simulate sliding movement
+                    local slideTween = game:GetService("TweenService"):Create(
+                        rootPart,
+                        TweenInfo.new(0.5, Enum.EasingStyle.Linear),
+                        {CFrame = holderRoot.CFrame + Vector3.new(0, 0, -5)} -- Slight offset to simulate a slide
+                    )
+                    slideTween:Play()
+
+                    -- Return to original position after a short delay
+                    task.delay(1, function()
+                        rootPart.CFrame = originalPosition
+                    end)
+
+                    print("Ball stolen and returned to original position!")
+                else
+                    warn("Ball holder's HumanoidRootPart not found.")
+                end
+            else
+                warn("No ball holder found nearby.")
+            end
+        end,
+    })
+end
+
+-- Attach Auto Steal Ball feature to MainTab
+function AutoStealScript.Initialize(Rayfield, MainTab)
+    createAutoStealFeature(MainTab)
+end
+
+return AutoStealScript
